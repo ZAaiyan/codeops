@@ -2,6 +2,20 @@
 
 ## 安装
 
+一键安装（推荐，安装后任意目录可用）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ZAaiyan/codeops/main/install.sh | bash
+```
+
+验证安装：
+
+```bash
+codeops --help
+```
+
+从源码安装（开发/贡献者）：
+
 ```bash
 cd codeops
 python3 -m venv .venv

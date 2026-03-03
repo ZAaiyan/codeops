@@ -46,14 +46,73 @@ detect_shell_rc() {
   printf '%s' "$HOME/.profile"
 }
 
-ensure_python_version() {
-  python3 - <<'PY'
+python_version_ok() {
+  local py="$1"
+  "$py" - <<'PY'
 import sys
 major, minor = sys.version_info[:2]
 if (major, minor) < (3, 11):
-    raise SystemExit(f"Python >= 3.11 required, got {sys.version.split()[0]}")
-print(sys.version.split()[0])
+    raise SystemExit(1)
 PY
+}
+
+is_macos() {
+  [ "$(uname -s 2>/dev/null || true)" = "Darwin" ]
+}
+
+ensure_python311_macos_brew() {
+  if ! is_macos; then
+    return 1
+  fi
+  if ! command -v brew >/dev/null 2>&1; then
+    return 1
+  fi
+
+  if brew list --versions python@3.11 >/dev/null 2>&1; then
+    return 0
+  fi
+
+  log "Python >= 3.11 not found. Installing python@3.11 via Homebrew..."
+  brew install python@3.11
+  return 0
+}
+
+find_python() {
+  local preferred=(
+    "${CODEOPS_PYTHON:-}"
+    "python3.13"
+    "python3.12"
+    "python3.11"
+    "python3"
+  )
+
+  for candidate in "${preferred[@]}"; do
+    if [ -z "$candidate" ]; then
+      continue
+    fi
+    if ! command -v "$candidate" >/dev/null 2>&1; then
+      continue
+    fi
+    if python_version_ok "$candidate"; then
+      command -v "$candidate"
+      return
+    fi
+  done
+
+  if ensure_python311_macos_brew; then
+    local brew_py=""
+    brew_py="$(brew --prefix python@3.11 2>/dev/null || true)/bin/python3.11"
+    if [ -x "$brew_py" ] && python_version_ok "$brew_py"; then
+      printf '%s' "$brew_py"
+      return
+    fi
+    if command -v python3.11 >/dev/null 2>&1 && python_version_ok python3.11; then
+      command -v python3.11
+      return
+    fi
+  fi
+
+  die "Python >= 3.11 not found. Install Python 3.11+ and ensure it's on PATH (e.g. python3.11), or set CODEOPS_PYTHON=/path/to/python3.11"
 }
 
 append_path_once() {
@@ -148,14 +207,13 @@ download_and_extract_repo() {
 main() {
   need_cmd bash
   need_cmd curl
-  need_cmd python3
 
   log "Installing codeops..."
   log "Repo: $CODEOPS_REPO_URL (ref: $CODEOPS_REF)"
 
-  local pyver=""
-  pyver="$(ensure_python_version)" || die "python3 version check failed"
-  log "Python: $pyver"
+  local python_bin=""
+  python_bin="$(find_python)"
+  log "Python: $("$python_bin" -V 2>&1 | awk '{print $2}') ($python_bin)"
 
   mkdir -p "$CODEOPS_HOME"
   mkdir -p "$CODEOPS_BIN_DIR"
@@ -163,7 +221,7 @@ main() {
   local venv_dir="$CODEOPS_HOME/venv"
   if [ ! -x "$venv_dir/bin/python" ]; then
     log "Creating venv: $venv_dir"
-    python3 -m venv "$venv_dir"
+    "$python_bin" -m venv "$venv_dir"
   fi
 
   log "Upgrading pip..."
