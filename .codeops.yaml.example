@@ -1,4 +1,4 @@
 base_url: https://ark.cn-beijing.volces.com/api/v3
-model: ep-20260303151757-zk8qz
+model: YOUR_ENDPOINT_ID
 max_iterations: 12
 temperature: 0

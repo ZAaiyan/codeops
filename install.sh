@@ -8,6 +8,9 @@ CODEOPS_REPO_URL="${CODEOPS_REPO_URL:-$CODEOPS_REPO_URL_DEFAULT}"
 CODEOPS_REF="${CODEOPS_REF:-main}"
 CODEOPS_HOME="${CODEOPS_HOME:-$HOME/.local/codeops}"
 CODEOPS_BIN_DIR="${CODEOPS_BIN_DIR:-$HOME/.local/bin}"
+CODEOPS_BASE_URL="${CODEOPS_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}"
+CODEOPS_MODEL="${CODEOPS_MODEL:-}"
+CODEOPS_CONFIGURE="${CODEOPS_CONFIGURE:-0}"
 
 log() { printf '%s\n' "$*"; }
 warn() { printf 'WARN: %s\n' "$*" >&2; }
@@ -15,7 +18,10 @@ die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "missing dependency: $1"
-}
+}base_url: https://ark.cn-beijing.volces.com/api/v3
+model: ep-你的真实endpoint
+max_iterations: 12
+temperature: 0
 
 detect_shell_rc() {
   local shell_name=""
@@ -135,6 +141,30 @@ append_path_once() {
   } >>"$rc_file"
 }
 
+is_interactive() {
+  [ -t 0 ] && [ -t 1 ]
+}
+
+configure_auth() {
+  local codeops_bin="$1"
+  local base_url="$2"
+  local model="$3"
+
+  if [ -z "$model" ] && is_interactive; then
+    printf 'Ark Endpoint ID (e.g. ep-xxxx): ' > /dev/tty
+    IFS= read -r model < /dev/tty || true
+    model="$(printf '%s' "$model" | tr -d '\r' | xargs)"
+  fi
+
+  if [ -z "$model" ]; then
+    warn "skip auth config: missing CODEOPS_MODEL (Endpoint ID)"
+    return 0
+  fi
+
+  "$codeops_bin" auth login --base-url "$base_url" --model "$model"
+  return 0
+}
+
 repo_slug_from_url() {
   local url="$1"
   url="${url%/}"
@@ -242,6 +272,17 @@ main() {
   ln -sf "$venv_dir/bin/codeops" "$CODEOPS_BIN_DIR/codeops"
   chmod +x "$CODEOPS_BIN_DIR/codeops" || true
 
+  local codeops_bin="$CODEOPS_BIN_DIR/codeops"
+  if [ "$CODEOPS_CONFIGURE" = "1" ]; then
+    if is_interactive; then
+      log ""
+      log "Configuring global auth..."
+      configure_auth "$codeops_bin" "$CODEOPS_BASE_URL" "$CODEOPS_MODEL"
+    else
+      warn "skip auth config: non-interactive shell. set CODEOPS_CONFIGURE=1 CODEOPS_MODEL=ep-xxx and rerun in a terminal."
+    fi
+  fi
+
   if ! command -v codeops >/dev/null 2>&1; then
     local rc_file=""
     rc_file="$(detect_shell_rc)"
@@ -258,6 +299,9 @@ main() {
   log "Try:"
   log "  codeops --help"
   log "  codeops auth login"
+  log ""
+  log "Optional: configure global auth during install:"
+  log "  CODEOPS_CONFIGURE=1 CODEOPS_MODEL=ep-xxxx curl -fsSL https://raw.githubusercontent.com/$CODEOPS_REPO/$CODEOPS_REF/install.sh | bash"
 }
 
 main "$@"

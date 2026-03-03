@@ -2,19 +2,28 @@
 
 ## 安装
 
-一键安装：
+一键安装（推荐，安装后任意目录可用）：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ZAaiyan/codeops/main/install.sh | bash
-
-curl -fsSL https://raw.githubusercontent.com/ZAaiyan/codeops/991fe5ed5cd66489e777cd9cf086156a704eee6a/install.sh | bash
-
 ```
 
 验证安装：
 
 ```bash
 codeops --help
+```
+
+一键更新（升级到最新 main）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ZAaiyan/codeops/main/install.sh | bash
+```
+
+一键更新到指定版本/分支（可选）：
+
+```bash
+CODEOPS_REF=v0.1.0 curl -fsSL https://raw.githubusercontent.com/ZAaiyan/codeops/main/install.sh | bash
 ```
 
 从源码安装（开发/贡献者）：
@@ -61,6 +70,13 @@ max_iterations: 12
 temperature: 0
 ```
 
+可选配置：
+
+```yaml
+planner_model: gpt-4o-mini
+max_context_chars: 60000
+```
+
 ## 运行
 
 进入交互模式：
@@ -73,6 +89,17 @@ codeops
 
 ```bash
 codeops run "fix this bug"
+```
+
+交互示例（默认启用“任务规划 + 分步执行”）：
+
+```text
+CodeOps > 重写这个模块以提高性能
+plan:
+1. 分析性能瓶颈
+2. 提出重构策略
+3. 生成并应用 patch
+4. 运行测试验证
 ```
 
 解释文件：
@@ -93,4 +120,18 @@ codeops refactor src/ --yes
 - `/clear` 清空历史
 - `/files` 查看当前目录文件
 - `/run <shell command>` 执行安全受限的 shell 命令
+- `/plan` 切换/查看计划
+- `/undo` 撤销最近一次写入
+- `/redo` 重做最近一次撤销
 - `/apply` 开启自动写入（相当于 `--yes`）
+
+## 安全策略
+
+- shell 命令默认走白名单（可用 `CODEOPS_SHELL_ALLOWLIST` 追加或用 `CODEOPS_SHELL_ALLOW_ALL=1` 放开）
+- `rm/chmod/chown` 等危险命令需要确认：在交互模式用 `/apply`，或在非交互模式使用 `--yes`
+- 禁止 `sudo`、递归删除、越权访问工作目录外的绝对路径
+
+## 长期记忆
+
+- 会持久化保存最近的对话片段与文件变更历史（用于后续上下文与 `/undo`/`/redo`）
+- 默认位置：`~/.config/codeops/state/`

@@ -143,7 +143,45 @@ _DANGEROUS_COMMAND_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
-def _validate_shell_command(command: str, *, root: Path | None) -> list[str]:
+def _shell_allowlist() -> set[str]:
+    allow_all = (os.getenv("CODEOPS_SHELL_ALLOW_ALL") or "").strip().lower() in {"1", "true", "yes"}
+    if allow_all:
+        return {"*"}
+
+    raw = (os.getenv("CODEOPS_SHELL_ALLOWLIST") or "").strip()
+    if raw:
+        return {p.strip() for p in raw.split(",") if p.strip()}
+
+    return {
+        "bash",
+        "cat",
+        "chmod",
+        "chown",
+        "echo",
+        "find",
+        "git",
+        "head",
+        "ls",
+        "make",
+        "node",
+        "npm",
+        "pip",
+        "pip3",
+        "pnpm",
+        "python",
+        "python3",
+        "pytest",
+        "pwd",
+        "rg",
+        "rm",
+        "ruff",
+        "tail",
+        "wc",
+        "yarn",
+    }
+
+
+def _validate_shell_command(command: str, *, root: Path | None, confirm: bool) -> list[str]:
     if command.strip() == "":
         raise ToolError("command is empty")
 
@@ -155,6 +193,15 @@ def _validate_shell_command(command: str, *, root: Path | None) -> list[str]:
         tokens = shlex.split(command)
     except ValueError as e:
         raise ToolError(f"cannot parse command: {e}") from e
+
+    allowlist = _shell_allowlist()
+    if allowlist != {"*"} and tokens:
+        cmd0 = tokens[0]
+        if cmd0 not in allowlist:
+            raise ToolError(f"blocked command: '{cmd0}' not in allowlist")
+
+    if tokens and tokens[0] in {"rm", "chmod", "chown"} and not confirm:
+        raise ToolError("command requires confirmation")
 
     if tokens and tokens[0] == "rm":
         for tok in tokens[1:]:
@@ -177,8 +224,8 @@ def _validate_shell_command(command: str, *, root: Path | None) -> list[str]:
     return tokens
 
 
-def run_shell(command: str, *, root: Path | None = None, timeout_s: int = 60) -> ShellResult:
-    _validate_shell_command(command, root=root)
+def run_shell(command: str, *, root: Path | None = None, timeout_s: int = 60, confirm: bool = False) -> ShellResult:
+    _validate_shell_command(command, root=root, confirm=confirm)
     workspace = _workspace_root(root)
 
     env = os.environ.copy()
