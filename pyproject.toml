@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codeops"
+version = "0.1.0"
+description = "Local CLI Agent: CodeOps"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "openai>=1.0.0",
+  "typer>=0.12.0",
+  "rich>=13.7.0",
+  "prompt_toolkit>=3.0.0",
+]
+
+[project.scripts]
+codeops = "codeops.cli:app"
+
+[tool.setuptools]
+packages = ["codeops"]
