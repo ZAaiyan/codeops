@@ -94,16 +94,39 @@ def list_files(
     if p.is_file():
         return [p.relative_to(workspace).as_posix()]
 
-    for child in sorted(p.rglob("*")):
+    skip_dirs = {
+        ".git",
+        ".hg",
+        ".svn",
+        ".venv",
+        "venv",
+        "node_modules",
+        "__pycache__",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        "dist",
+        "build",
+    }
+
+    for dirpath, dirnames, filenames in os.walk(p):
         if len(entries) >= max_entries:
             break
-        if child.is_dir():
-            continue
-        try:
-            rel = child.relative_to(workspace).as_posix()
-        except ValueError:
-            continue
-        entries.append(rel)
+
+        dirnames[:] = [d for d in dirnames if d not in skip_dirs]
+        dirnames.sort()
+        filenames.sort()
+
+        base = Path(dirpath)
+        for name in filenames:
+            if len(entries) >= max_entries:
+                break
+            child = base / name
+            try:
+                rel = child.relative_to(workspace).as_posix()
+            except ValueError:
+                continue
+            entries.append(rel)
     return entries
 
 
