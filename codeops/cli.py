@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import getpass
 import json
+import sys
 import traceback
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,14 @@ console = Console()
 
 auth_app = typer.Typer(add_completion=False)
 app.add_typer(auth_app, name="auth")
+
+
+def _ensure_utf8_stdio() -> None:
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
 
 
 @auth_app.command("login")
@@ -140,6 +149,7 @@ def main(
     max_iterations: int = typer.Option(None, "--max-iterations"),
     temperature: float = typer.Option(None, "--temperature"),
 ) -> None:
+    _ensure_utf8_stdio()
     if ctx.invoked_subcommand is not None:
         return
     chat(model=model, max_iterations=max_iterations, temperature=temperature, yes=yes, debug=debug)

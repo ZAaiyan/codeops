@@ -6,6 +6,9 @@
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ZAaiyan/codeops/main/install.sh | bash
+
+curl -fsSL https://raw.githubusercontent.com/ZAaiyan/codeops/991fe5ed5cd66489e777cd9cf086156a704eee6a/install.sh | bash
+
 ```
 
 验证安装：
@@ -47,7 +50,7 @@ export ARK_API_KEY=xxx
 
 ```yaml
 base_url: https://ark.cn-beijing.volces.com/api/v3
-model: YOUR_ENDPOINT_ID
+model: ep-20260303151757-zk8qz
 max_iterations: 12
 temperature: 0
 ```
