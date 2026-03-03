@@ -2,7 +2,7 @@
 
 ## 安装
 
-一键安装（推荐，安装后任意目录可用）：
+一键安装：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ZAaiyan/codeops/main/install.sh | bash
@@ -46,11 +46,17 @@ export OPENAI_API_KEY=xxx
 export ARK_API_KEY=xxx
 ```
 
-如果你在项目目录下放置 `.codeops.yaml`，可以配置豆包的 Base URL 与模型接入点（Endpoint ID）：
+如果你在项目目录下放置 `.codeops.yaml`，可以配置豆包的 Base URL 与模型接入点（Endpoint ID）。
+
+推荐做法：复制示例文件后再改（不要把个人配置提交到仓库）：
+
+```bash
+cp .codeops.yaml.example .codeops.yaml
+```
 
 ```yaml
 base_url: https://ark.cn-beijing.volces.com/api/v3
-model: ep-20260303151757-zk8qz
+model: YOUR_ENDPOINT_ID
 max_iterations: 12
 temperature: 0
 ```
